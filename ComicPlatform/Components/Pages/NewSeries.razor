@@ -1,0 +1,98 @@
+@page "/creator/new-series"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@using ComicPlatform.Data
+@using ComicPlatform.Models
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@inject ApplicationDbContext Db
+@inject AuthenticationStateProvider AuthProvider
+@inject NavigationManager Nav
+
+<PageTitle>Start a New Series</PageTitle>
+
+<h1>Start a New Series</h1>
+
+<EditForm Model="_model" OnValidSubmit="HandleSubmit" FormName="NewSeriesForm">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="field">
+        <label>Title</label>
+        <InputText @bind-Value="_model.Title" />
+    </div>
+
+    <div class="field">
+        <label>Synopsis</label>
+        <InputTextArea @bind-Value="_model.Synopsis" rows="4" />
+    </div>
+
+    <div class="field">
+        <label>Status</label>
+        <InputSelect @bind-Value="_model.Status">
+            <option value="@SeriesStatus.Ongoing">Ongoing</option>
+            <option value="@SeriesStatus.Completed">Completed</option>
+            <option value="@SeriesStatus.Hiatus">Hiatus</option>
+        </InputSelect>
+    </div>
+
+    <button type="submit">Create Series</button>
+</EditForm>
+
+<style>
+    .field {
+        margin-bottom: 1rem;
+    }
+
+    .field label {
+        display: block;
+        margin-bottom: 0.25rem;
+        font-weight: 600;
+    }
+
+    .field input, .field textarea, .field select {
+        width: 100%;
+        max-width: 500px;
+        padding: 0.5rem;
+    }
+</style>
+
+@code {
+    private readonly SeriesFormModel _model = new();
+
+    private async Task HandleSubmit()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (userId is null)
+        {
+            return;
+        }
+
+        var series = new Series
+        {
+            Title = _model.Title,
+            Synopsis = _model.Synopsis,
+            Status = _model.Status,
+            CreatorId = userId
+        };
+
+        Db.Series.Add(series);
+        await Db.SaveChangesAsync();
+
+        Nav.NavigateTo($"/creator/series/{series.Id}/new-chapter");
+    }
+
+    private class SeriesFormModel
+    {
+        [Required, MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        public string Synopsis { get; set; } = string.Empty;
+
+        public SeriesStatus Status { get; set; } = SeriesStatus.Ongoing;
+    }
+}

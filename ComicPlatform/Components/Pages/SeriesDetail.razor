@@ -1,0 +1,423 @@
+@page "/series/{SeriesId:int}"
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.EntityFrameworkCore
+@using ComicPlatform.Data
+@using ComicPlatform.Models
+@using System.Security.Claims
+@inject ApplicationDbContext Db
+@inject AuthenticationStateProvider AuthProvider
+
+<PageTitle>@(_series?.Title ?? "Series")</PageTitle>
+
+<HeadContent>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,500&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+</HeadContent>
+
+<div class="series-detail">
+    <a class="back-link" href="/">&laquo; All series</a>
+
+    @if (!_loaded)
+    {
+        <p class="loading">Loading...</p>
+    }
+    else if (_series is null)
+    {
+        <p class="loading">That series doesn't exist.</p>
+    }
+    else
+    {
+        var publishedChapters = _series.Chapters
+            .Where(c => !c.IsDraft && c.PublishedAt <= DateTime.UtcNow)
+            .OrderBy(c => c.Number)
+            .ToList();
+
+        <div class="header">
+            <div class="cover">
+                @if (!string.IsNullOrEmpty(_series.CoverImageUrl))
+                {
+                    <img src="@_series.CoverImageUrl" alt="@_series.Title" />
+                }
+                else
+                {
+                    <div class="cover-placeholder">@_series.Title</div>
+                }
+            </div>
+
+            <div class="info">
+                <h1>@_series.Title</h1>
+                <span class="status status-@_series.Status.ToString().ToLower()">@_series.Status</span>
+
+                @if (_series.Genres.Count > 0)
+                {
+                    <div class="genre-tags">
+                        @foreach (var genre in _series.Genres)
+                        {
+                            <span class="genre-tag">@genre.Name</span>
+                        }
+                    </div>
+                }
+
+                <p class="byline">by @_series.Creator.DisplayName</p>
+                <p class="synopsis">@_series.Synopsis</p>
+
+                <div class="action-row">
+                    @if (publishedChapters.Count > 0)
+                    {
+                        <a class="start-reading" href="@($"/read/{_series.Id}/{publishedChapters.First().Number}")">Start Reading</a>
+                    }
+
+                    @if (_currentUserId is not null)
+                    {
+                        <button class="follow-button @(_isFollowing ? "following" : "")" @onclick="ToggleFollow">
+                            @(_isFollowing ? "Following" : "Follow")
+                        </button>
+                    }
+                    else
+                    {
+                        <a class="follow-login-prompt" href="/Account/Login">Log in to follow</a>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="chapters">
+            <h2>Chapters</h2>
+
+            @if (publishedChapters.Count == 0)
+            {
+                <p>No chapters published yet.</p>
+            }
+            else
+            {
+                @foreach (var chapter in publishedChapters)
+                {
+                    <div class="chapter-row">
+                        <a class="chapter-link" href="@($"/read/{_series.Id}/{chapter.Number}")">
+                            <span class="chapter-name">Chapter @chapter.Number: @chapter.Title</span>
+                            <span class="chapter-date">@chapter.PublishedAt?.ToString("MMM d, yyyy")</span>
+                        </a>
+                        @if (_isAuthor)
+                        {
+                            <a class="chapter-edit-link" href="@($"/creator/chapter/{chapter.Id}/edit")">Edit</a>
+                        }
+                    </div>
+                }
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .series-detail {
+        font-family: 'Public Sans', sans-serif;
+        background: var(--paper);
+        color: var(--ink);
+        min-height: 100vh;
+        padding: 2rem 2rem 4rem;
+    }
+
+    .back-link {
+        display: block;
+        max-width: 1100px;
+        margin: 0 auto 2rem;
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .back-link:hover {
+        text-decoration: underline;
+    }
+
+    .header {
+        max-width: 1100px;
+        margin: 0 auto 3rem;
+        display: flex;
+        gap: 2.5rem;
+        flex-wrap: wrap;
+    }
+
+    .header .cover {
+        width: 220px;
+        aspect-ratio: 3 / 4;
+        flex-shrink: 0;
+        border: 3px solid var(--ink);
+        overflow: hidden;
+        background: var(--paper);
+    }
+
+    .header .cover img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .header .cover-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 1rem;
+        font-family: 'Fraunces', serif;
+        font-weight: 600;
+        background: repeating-linear-gradient(
+            135deg,
+            var(--paper),
+            var(--paper) 10px,
+            var(--hatch) 10px,
+            var(--hatch) 11px
+        );
+    }
+
+    .info {
+        flex: 1;
+        min-width: 260px;
+    }
+
+    .info h1 {
+        font-family: 'Fraunces', serif;
+        font-weight: 900;
+        font-size: clamp(1.75rem, 4vw, 2.5rem);
+        margin: 0 0 0.5rem;
+    }
+
+    .genre-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin: 0.75rem 0;
+    }
+
+    .genre-tag {
+        border: 1.5px solid var(--ink);
+        padding: 0.2rem 0.6rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .byline {
+        font-style: italic;
+        font-family: 'Fraunces', serif;
+        margin: 0.6rem 0 1rem;
+        color: var(--accent);
+    }
+
+    .synopsis {
+        line-height: 1.6;
+        max-width: 65ch;
+        margin: 0 0 1.5rem;
+    }
+
+    .action-row {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .start-reading {
+        display: inline-block;
+        background: var(--ink);
+        color: var(--paper);
+        text-decoration: none;
+        font-weight: 600;
+        padding: 0.7rem 1.5rem;
+        border: 3px solid var(--ink);
+    }
+
+    .start-reading:hover {
+        background: var(--accent);
+        border-color: var(--accent);
+    }
+
+    .follow-button {
+        background: transparent;
+        color: var(--ink);
+        border: 3px solid var(--ink);
+        padding: 0.7rem 1.5rem;
+        font-family: 'Public Sans', sans-serif;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+    }
+
+    .follow-button:hover {
+        background: var(--panel-bg);
+    }
+
+    .follow-button.following {
+        background: var(--accent);
+        color: var(--paper);
+        border-color: var(--accent);
+    }
+
+    .follow-button.following:hover {
+        background: var(--ink);
+        border-color: var(--ink);
+    }
+
+    .follow-login-prompt {
+        color: var(--accent);
+        font-weight: 600;
+        text-decoration: underline;
+    }
+
+    .chapters {
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+
+    .chapters h2 {
+        font-family: 'Fraunces', serif;
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .chapter-row {
+        display: flex;
+        align-items: center;
+        border-bottom: 1.5px solid var(--ink);
+    }
+
+    .chapter-row:first-of-type {
+        border-top: 3px solid var(--ink);
+    }
+
+    .chapter-link {
+        flex: 1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 0.25rem;
+        text-decoration: none;
+        color: var(--ink);
+    }
+
+    .chapter-row:hover .chapter-link {
+        background: var(--panel-bg);
+    }
+
+    .chapter-edit-link {
+        color: var(--accent);
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-decoration: underline;
+        padding: 0 0.75rem;
+        white-space: nowrap;
+    }
+
+    .chapter-name {
+        font-weight: 600;
+    }
+
+    .chapter-date {
+        color: var(--accent);
+        font-size: 0.9rem;
+        white-space: nowrap;
+    }
+
+    .status {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.15rem 0.55rem;
+        border: 1.5px solid var(--ink);
+    }
+
+    .status-ongoing {
+        background: var(--ink);
+        color: var(--paper);
+    }
+
+    .status-completed {
+        background: transparent;
+        color: var(--ink);
+    }
+
+    .status-hiatus {
+        background: transparent;
+        color: var(--ink);
+        opacity: 0.55;
+    }
+
+    .loading {
+        max-width: 1100px;
+        margin: 0 auto;
+        font-family: 'Fraunces', serif;
+        font-size: 1.1rem;
+    }
+</style>
+
+@code {
+    [Parameter] public int SeriesId { get; set; }
+
+    private Series? _series;
+    private bool _loaded;
+    private string? _currentUserId;
+    private bool _isAuthor;
+    private bool _isFollowing;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        _currentUserId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        _series = await Db.Series
+            .Include(s => s.Creator)
+            .Include(s => s.Chapters)
+            .Include(s => s.Genres)
+            .FirstOrDefaultAsync(s => s.Id == SeriesId);
+
+        if (_series is not null && _currentUserId is not null)
+        {
+            _isAuthor = _series.CreatorId == _currentUserId ||
+                await Db.SeriesAuthors.AnyAsync(sa => sa.SeriesId == SeriesId && sa.UserId == _currentUserId);
+
+            var follow = await Db.Follows.FindAsync(_currentUserId, SeriesId);
+            _isFollowing = follow is not null;
+
+            if (follow is not null)
+            {
+                follow.LastViewedAt = DateTime.UtcNow;
+                await Db.SaveChangesAsync();
+            }
+        }
+
+        _loaded = true;
+    }
+
+    private async Task ToggleFollow()
+    {
+        if (_currentUserId is null || _series is null)
+        {
+            return;
+        }
+
+        if (_isFollowing)
+        {
+            var existing = await Db.Follows.FindAsync(_currentUserId, _series.Id);
+            if (existing is not null)
+            {
+                Db.Follows.Remove(existing);
+            }
+        }
+        else
+        {
+            Db.Follows.Add(new Follow
+            {
+                UserId = _currentUserId,
+                SeriesId = _series.Id
+            });
+        }
+
+        await Db.SaveChangesAsync();
+        _isFollowing = !_isFollowing;
+    }
+}

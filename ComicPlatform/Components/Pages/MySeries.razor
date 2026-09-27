@@ -1,0 +1,234 @@
+@page "/creator/my-series"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.EntityFrameworkCore
+@using ComicPlatform.Data
+@using ComicPlatform.Models
+@using System.Security.Claims
+@inject ApplicationDbContext Db
+@inject AuthenticationStateProvider AuthProvider
+
+<PageTitle>Your Series</PageTitle>
+
+<HeadContent>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,500&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+</HeadContent>
+
+<div class="dashboard">
+    <header class="dashboard-header">
+        <h1>Your Series</h1>
+        <a class="new-series-link" href="/creator/new-series">Start a New Series</a>
+    </header>
+
+    @if (_series is null)
+    {
+        <p class="loading">Loading...</p>
+    }
+    else if (_series.Count == 0)
+    {
+        <div class="empty">
+            <p>You haven't started a series yet.</p>
+            <a href="/creator/new-series">Start your first one</a>
+        </div>
+    }
+    else
+    {
+        <div class="series-list">
+            @foreach (var series in _series)
+            {
+                var publishedCount = series.Chapters.Count(c => !c.IsDraft);
+                var draftCount = series.Chapters.Count(c => c.IsDraft);
+
+                <div class="series-row">
+                    <div class="series-row-main">
+                        <span class="series-title">@series.Title</span>
+                        <span class="status status-@series.Status.ToString().ToLower()">@series.Status</span>
+                    </div>
+                    <span class="chapter-count">@ChapterSummary(publishedCount, draftCount)</span>
+                    <span class="view-count">@series.Chapters.Sum(c => c.ViewCount) views</span>
+                    <div class="series-row-actions">
+                        <a href="@($"/series/{series.Id}")">View</a>
+                        <a href="@($"/creator/series/{series.Id}/edit")">Edit</a>
+                        <a href="@($"/creator/series/{series.Id}/new-chapter")">Add Chapter</a>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .dashboard {
+        font-family: 'Public Sans', sans-serif;
+        background: var(--paper);
+        color: var(--ink);
+        min-height: 100vh;
+        padding: 2.5rem 2rem 4rem;
+    }
+
+    .dashboard-header {
+        max-width: 1100px;
+        margin: 0 auto 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 1rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 3px solid var(--ink);
+    }
+
+    .dashboard-header h1 {
+        font-family: 'Fraunces', serif;
+        font-weight: 900;
+        font-size: clamp(1.75rem, 4vw, 2.5rem);
+        margin: 0;
+    }
+
+    .new-series-link {
+        color: var(--accent);
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .new-series-link:hover {
+        text-decoration: underline;
+    }
+
+    .series-list {
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+
+    .series-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        padding: 1.1rem 0.25rem;
+        border-bottom: 1.5px solid var(--ink);
+    }
+
+    .series-row:first-child {
+        border-top: 3px solid var(--ink);
+    }
+
+    .series-row-main {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .series-title {
+        font-family: 'Fraunces', serif;
+        font-weight: 600;
+        font-size: 1.15rem;
+    }
+
+    .chapter-count {
+        color: var(--accent);
+        font-size: 0.9rem;
+    }
+
+    .view-count {
+        color: var(--ink);
+        opacity: 0.6;
+        font-size: 0.9rem;
+    }
+
+    .series-row-actions {
+        display: flex;
+        gap: 1.25rem;
+    }
+
+    .series-row-actions a {
+        color: var(--ink);
+        font-weight: 600;
+        text-decoration: underline;
+    }
+
+    .series-row-actions a:hover {
+        color: var(--accent);
+    }
+
+    .status {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.15rem 0.55rem;
+        border: 1.5px solid var(--ink);
+    }
+
+    .status-ongoing {
+        background: var(--ink);
+        color: var(--paper);
+    }
+
+    .status-completed {
+        background: transparent;
+        color: var(--ink);
+    }
+
+    .status-hiatus {
+        background: transparent;
+        color: var(--ink);
+        opacity: 0.55;
+    }
+
+    .empty, .loading {
+        max-width: 1100px;
+        margin: 0 auto;
+        font-family: 'Fraunces', serif;
+        font-size: 1.1rem;
+    }
+
+    .empty a {
+        display: inline-block;
+        margin-top: 0.75rem;
+        color: var(--accent);
+        font-weight: 600;
+        text-decoration: underline;
+    }
+</style>
+
+@code {
+    private List<Series>? _series;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        _series = await Db.Series
+            .Include(s => s.Chapters)
+            .Where(s => s.CreatorId == userId || s.Authors.Any(a => a.UserId == userId))
+            .OrderByDescending(s => s.UpdatedAt)
+            .ToListAsync();
+    }
+
+    private static string ChapterSummary(int published, int drafts)
+    {
+        if (published == 0 && drafts == 0)
+        {
+            return "No chapters yet";
+        }
+
+        var parts = new List<string>();
+        if (published > 0)
+        {
+            parts.Add($"{published} published");
+        }
+        if (drafts > 0)
+        {
+            parts.Add($"{drafts} draft{(drafts == 1 ? "" : "s")}");
+        }
+
+        return string.Join(", ", parts);
+    }
+}

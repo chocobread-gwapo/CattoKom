@@ -1,0 +1,256 @@
+@page "/following"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.EntityFrameworkCore
+@using ComicPlatform.Data
+@using ComicPlatform.Models
+@using System.Security.Claims
+@inject ApplicationDbContext Db
+@inject AuthenticationStateProvider AuthProvider
+
+<PageTitle>Following</PageTitle>
+
+<HeadContent>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,500&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+</HeadContent>
+
+<div class="browse">
+    <header class="masthead">
+        <h1>Following</h1>
+        <p class="tagline">Series you're keeping up with.</p>
+    </header>
+
+    @if (!_loaded)
+    {
+        <p class="loading">Loading...</p>
+    }
+    else if (_items.Count == 0)
+    {
+        <div class="empty">
+            <p>You're not following anything yet.</p>
+            <a href="/">Browse series</a>
+        </div>
+    }
+    else
+    {
+        <div class="grid">
+            @foreach (var item in _items)
+            {
+                <a class="panel" href="@($"/series/{item.Series.Id}")">
+                    <div class="cover">
+                        @if (!string.IsNullOrEmpty(item.Series.CoverImageUrl))
+                        {
+                            <img src="@item.Series.CoverImageUrl" alt="@item.Series.Title" />
+                        }
+                        else
+                        {
+                            <div class="cover-placeholder">@item.Series.Title</div>
+                        }
+                    </div>
+                    <div class="panel-info">
+                        <h2>@item.Series.Title</h2>
+                        <span class="status status-@item.Series.Status.ToString().ToLower()">@item.Series.Status</span>
+                        @if (item.HasNewChapter)
+                        {
+                            <span class="new-badge">New chapter</span>
+                        }
+                    </div>
+                </a>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .browse {
+        font-family: 'Public Sans', sans-serif;
+        background: var(--paper);
+        color: var(--ink);
+        min-height: 100vh;
+        padding: 2.5rem 2rem 4rem;
+    }
+
+    .masthead {
+        max-width: 1100px;
+        margin: 0 auto 3rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 3px solid var(--ink);
+    }
+
+    .masthead h1 {
+        font-family: 'Fraunces', serif;
+        font-weight: 900;
+        font-size: clamp(2.25rem, 5vw, 3.5rem);
+        margin: 0;
+        letter-spacing: -0.01em;
+    }
+
+    .tagline {
+        font-family: 'Fraunces', serif;
+        font-style: italic;
+        font-weight: 500;
+        font-size: 1.15rem;
+        color: var(--accent);
+        margin: 0.25rem 0 0;
+    }
+
+    .grid {
+        max-width: 1100px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 2rem 1.75rem;
+    }
+
+    .panel {
+        display: block;
+        text-decoration: none;
+        color: var(--ink);
+        border: 3px solid var(--ink);
+        background: var(--panel-bg);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .panel:hover {
+        transform: translate(-2px, -2px);
+        box-shadow: 4px 4px 0 var(--ink);
+    }
+
+    .panel:focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 2px;
+    }
+
+    .cover {
+        aspect-ratio: 3 / 4;
+        overflow: hidden;
+        border-bottom: 3px solid var(--ink);
+        background: var(--paper);
+    }
+
+    .cover img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .cover-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 1rem;
+        font-family: 'Fraunces', serif;
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: var(--ink);
+        background: repeating-linear-gradient(
+            135deg,
+            var(--paper),
+            var(--paper) 10px,
+            var(--hatch) 10px,
+            var(--hatch) 11px
+        );
+    }
+
+    .panel-info {
+        padding: 0.85rem 1rem 1rem;
+    }
+
+    .panel-info h2 {
+        font-family: 'Fraunces', serif;
+        font-size: 1.05rem;
+        font-weight: 600;
+        margin: 0 0 0.4rem;
+        line-height: 1.25;
+    }
+
+    .status {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.15rem 0.55rem;
+        border: 1.5px solid var(--ink);
+    }
+
+    .status-ongoing {
+        background: var(--ink);
+        color: var(--paper);
+    }
+
+    .status-completed {
+        background: transparent;
+        color: var(--ink);
+    }
+
+    .status-hiatus {
+        background: transparent;
+        color: var(--ink);
+        opacity: 0.55;
+    }
+
+    .new-badge {
+        display: inline-block;
+        margin-left: 0.4rem;
+        background: var(--accent);
+        color: var(--paper);
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.15rem 0.5rem;
+        border: 1.5px solid var(--accent);
+    }
+
+    .empty, .loading {
+        max-width: 1100px;
+        margin: 0 auto;
+        font-family: 'Fraunces', serif;
+        font-size: 1.1rem;
+    }
+
+    .empty a {
+        display: inline-block;
+        margin-top: 0.75rem;
+        color: var(--accent);
+        font-weight: 600;
+        text-decoration: underline;
+    }
+</style>
+
+@code {
+    private List<FollowedSeriesItem> _items = new();
+    private bool _loaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        var follows = await Db.Follows
+            .Include(f => f.Series)
+                .ThenInclude(s => s.Chapters)
+            .Where(f => f.UserId == userId)
+            .OrderByDescending(f => f.FollowedAt)
+            .ToListAsync();
+
+        _items = follows.Select(f => new FollowedSeriesItem
+        {
+            Series = f.Series,
+            HasNewChapter = f.Series.Chapters.Any(c => !c.IsDraft && c.PublishedAt <= DateTime.UtcNow && c.PublishedAt > (f.LastViewedAt ?? f.FollowedAt))
+        }).ToList();
+
+        _loaded = true;
+    }
+
+    private class FollowedSeriesItem
+    {
+        public Series Series { get; set; } = null!;
+        public bool HasNewChapter { get; set; }
+    }
+}

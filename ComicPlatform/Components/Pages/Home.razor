@@ -1,0 +1,336 @@
+@page "/"
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.EntityFrameworkCore
+@using ComicPlatform.Data
+@using ComicPlatform.Models
+@inject ApplicationDbContext Db
+
+<PageTitle>CattoKom🐾 — Read something new</PageTitle>
+
+<HeadContent>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,500&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+</HeadContent>
+
+<div class="browse">
+    <header class="masthead">
+        <h1>CattoKom🐾</h1>
+        <p class="tagline">Read something new.</p>
+    </header>
+
+    @if (!_loaded)
+    {
+        <p class="loading">Loading...</p>
+    }
+    else if (_allSeries.Count == 0)
+    {
+        <div class="empty">
+            <p>Nothing published yet.</p>
+            <a href="/creator/new-series">Start a series</a>
+        </div>
+    }
+    else
+    {
+        <div class="search-row">
+            <input type="search"
+                   class="search-input"
+                   placeholder="Search by title..."
+                   @oninput="OnSearchInput" />
+        </div>
+
+        <div class="genre-filter">
+            <button class="genre-chip @(_selectedGenreId is null ? "active" : "")" @onclick="() => SelectGenre(null)">
+                All
+            </button>
+            @foreach (var genre in _allGenres)
+            {
+                <button class="genre-chip @(_selectedGenreId == genre.Id ? "active" : "")" @onclick="() => SelectGenre(genre.Id)">
+                    @genre.Name
+                </button>
+            }
+        </div>
+
+        @if (!FilteredSeries.Any())
+        {
+            <p class="empty-filter">No series match your search or filter.</p>
+        }
+        else
+        {
+            <div class="grid">
+                @foreach (var series in FilteredSeries)
+                {
+                    <a class="panel" href="@($"/series/{series.Id}")">
+                        <div class="cover">
+                            @if (!string.IsNullOrEmpty(series.CoverImageUrl))
+                            {
+                                <img src="@series.CoverImageUrl" alt="@series.Title" />
+                            }
+                            else
+                            {
+                                <div class="cover-placeholder">@series.Title</div>
+                            }
+                        </div>
+                        <div class="panel-info">
+                            <h2>@series.Title</h2>
+                            <span class="status status-@series.Status.ToString().ToLower()">@series.Status</span>
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+    }
+</div>
+
+<style>
+    .browse {
+        font-family: 'Public Sans', sans-serif;
+        background: var(--paper);
+        color: var(--ink);
+        min-height: 100vh;
+        padding: 2.5rem 2rem 4rem;
+    }
+
+    .masthead {
+        max-width: 1100px;
+        margin: 0 auto 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 3px solid var(--ink);
+    }
+
+    .masthead h1 {
+        font-family: 'Fraunces', serif;
+        font-weight: 900;
+        font-size: clamp(2.25rem, 5vw, 3.5rem);
+        margin: 0;
+        letter-spacing: -0.01em;
+    }
+
+    .tagline {
+        font-family: 'Fraunces', serif;
+        font-style: italic;
+        font-weight: 500;
+        font-size: 1.15rem;
+        color: var(--accent);
+        margin: 0.25rem 0 0;
+    }
+
+    .search-row {
+        max-width: 1100px;
+        margin: 0 auto 1.5rem;
+    }
+
+    .search-input {
+        width: 100%;
+        max-width: 400px;
+        padding: 0.6rem 0.85rem;
+        border: 1.5px solid var(--ink);
+        font-family: 'Public Sans', sans-serif;
+        font-size: 0.95rem;
+        background: var(--panel-bg);
+        color: var(--ink);
+        box-sizing: border-box;
+    }
+
+    .search-input::placeholder {
+        color: var(--muted-text);
+    }
+
+    .search-input:focus {
+        outline: 3px solid var(--accent);
+        outline-offset: 1px;
+    }
+
+    .genre-filter {
+        max-width: 1100px;
+        margin: 0 auto 2rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .genre-chip {
+        border: 1.5px solid var(--ink);
+        background: transparent;
+        color: var(--ink);
+        padding: 0.35rem 0.85rem;
+        font-family: 'Public Sans', sans-serif;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .genre-chip:hover {
+        background: var(--panel-bg);
+    }
+
+    .genre-chip.active {
+        background: var(--ink);
+        color: var(--paper);
+    }
+
+    .grid {
+        max-width: 1100px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 2rem 1.75rem;
+    }
+
+    .panel {
+        display: block;
+        text-decoration: none;
+        color: var(--ink);
+        border: 3px solid var(--ink);
+        background: var(--panel-bg);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .panel:hover {
+        transform: translate(-2px, -2px);
+        box-shadow: 4px 4px 0 var(--ink);
+    }
+
+    .panel:focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 2px;
+    }
+
+    .cover {
+        aspect-ratio: 3 / 4;
+        overflow: hidden;
+        border-bottom: 3px solid var(--ink);
+        background: var(--paper);
+    }
+
+    .cover img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .cover-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 1rem;
+        font-family: 'Fraunces', serif;
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: var(--ink);
+        background: repeating-linear-gradient(
+            135deg,
+            var(--paper),
+            var(--paper) 10px,
+            var(--hatch) 10px,
+            var(--hatch) 11px
+        );
+    }
+
+    .panel-info {
+        padding: 0.85rem 1rem 1rem;
+    }
+
+    .panel-info h2 {
+        font-family: 'Fraunces', serif;
+        font-size: 1.05rem;
+        font-weight: 600;
+        margin: 0 0 0.4rem;
+        line-height: 1.25;
+    }
+
+    .status {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.15rem 0.55rem;
+        border: 1.5px solid var(--ink);
+    }
+
+    .status-ongoing {
+        background: var(--ink);
+        color: var(--paper);
+    }
+
+    .status-completed {
+        background: transparent;
+        color: var(--ink);
+    }
+
+    .status-hiatus {
+        background: transparent;
+        color: var(--ink);
+        opacity: 0.55;
+    }
+
+    .empty, .loading, .empty-filter {
+        max-width: 1100px;
+        margin: 0 auto;
+        font-family: 'Fraunces', serif;
+        font-size: 1.1rem;
+    }
+
+    .empty a {
+        display: inline-block;
+        margin-top: 0.75rem;
+        color: var(--accent);
+        font-weight: 600;
+        text-decoration: underline;
+    }
+</style>
+
+@code {
+    private List<Series> _allSeries = new();
+    private List<Genre> _allGenres = new();
+    private int? _selectedGenreId;
+    private string _searchQuery = string.Empty;
+    private bool _loaded;
+
+    private IEnumerable<Series> FilteredSeries
+    {
+        get
+        {
+            var result = _allSeries.AsEnumerable();
+
+            if (_selectedGenreId is not null)
+            {
+                result = result.Where(s => s.Genres.Any(g => g.Id == _selectedGenreId));
+            }
+
+            if (!string.IsNullOrWhiteSpace(_searchQuery))
+            {
+                result = result.Where(s => s.Title.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase));
+            }
+
+            return result;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _allGenres = await Db.Genres.OrderBy(g => g.Name).ToListAsync();
+
+        _allSeries = await Db.Series
+            .Include(s => s.Chapters)
+            .Include(s => s.Genres)
+            .Where(s => s.Chapters.Any(c => !c.IsDraft && c.PublishedAt <= DateTime.UtcNow))
+            .OrderByDescending(s => s.UpdatedAt)
+            .ToListAsync();
+
+        _loaded = true;
+    }
+
+    private void SelectGenre(int? genreId)
+    {
+        _selectedGenreId = genreId;
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        _searchQuery = e.Value?.ToString() ?? string.Empty;
+    }
+}
