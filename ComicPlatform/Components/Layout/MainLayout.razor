@@ -9,19 +9,20 @@
 
     <main>
         <div class="top-row px-4">
-            <div class="theme-switch">
-                <button type="button" class="theme-option @(!_isDark ? "active" : "")" @onclick='() => SetTheme("light")' aria-label="Light mode">
+            <button type="button" class="theme-switch @(_isDark ? "dark" : "")" @onclick="ToggleTheme" aria-label="@(_isDark ? "Switch to light mode" : "Switch to dark mode")">
+                <span class="theme-icon sun-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-sun-fill" viewBox="0 0 16 16">
                         <path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0m0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13m8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5M3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8m10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0m-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0m9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707M4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708"/>
                     </svg>
-                </button>
-                <button type="button" class="theme-option @(_isDark ? "active" : "")" @onclick='() => SetTheme("dark")' aria-label="Dark mode">
+                </span>
+                <span class="theme-icon moon-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-moon-stars-fill" viewBox="0 0 16 16">
                         <path d="M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278"/>
                         <path d="M10.794 3.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387a1.73 1.73 0 0 0-1.097 1.097l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162A1.73 1.73 0 0 0 9.31 6.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387a1.73 1.73 0 0 0 1.097-1.097zM13.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.16 1.16 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.16 1.16 0 0 0-.732-.732l-.774-.258a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732z"/>
                     </svg>
-                </button>
-            </div>
+                </span>
+                <span class="theme-knob"></span>
+            </button>
         </div>
 
         <article class="content px-4">
@@ -38,55 +39,75 @@
 
 <style>
     .theme-switch {
+        position: relative;
         display: inline-flex;
         align-items: center;
-        gap: 0.25rem;
+        width: 4rem;
+        height: 2.25rem;
         background: var(--paper);
         border: 1.5px solid var(--border-soft);
         border-radius: 999px;
         padding: 0.25rem;
+        box-sizing: border-box;
+        cursor: pointer;
     }
 
-    .theme-option {
+    .theme-icon {
+        position: relative;
+        z-index: 2;
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 2rem;
-        height: 2rem;
-        border-radius: 999px;
-        border: none;
-        background: transparent;
+        width: 1.75rem;
+        height: 1.75rem;
         color: var(--muted-text);
-        cursor: pointer;
-        transition: background 0.15s ease, color 0.15s ease;
+        transition: color 0.3s ease;
     }
 
-    .theme-option:hover {
+    .theme-switch:not(.dark) .sun-icon {
         color: var(--ink);
     }
 
-    .theme-option.active {
+    .theme-switch.dark .moon-icon {
+        color: var(--ink);
+    }
+
+    .theme-knob {
+        position: absolute;
+        top: 0.25rem;
+        left: 0.25rem;
+        width: 1.75rem;
+        height: 1.75rem;
         background: var(--panel-bg);
-        color: var(--ink);
+        border-radius: 999px;
+        z-index: 1;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .theme-switch.dark .theme-knob {
+        transform: translateX(1.75rem);
     }
 </style>
 
 @code {
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
     private bool _isDark;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnInitialized()
     {
-        if (firstRender)
+        if (HttpContext is not null &&
+            HttpContext.Request.Cookies.TryGetValue("theme", out var theme))
         {
-            var current = await JS.InvokeAsync<string>("getTheme");
-            _isDark = current == "dark";
-            StateHasChanged();
+            _isDark = theme == "dark";
         }
     }
 
-    private async Task SetTheme(string theme)
+    private async Task ToggleTheme()
     {
-        await JS.InvokeVoidAsync("setTheme", theme);
-        _isDark = theme == "dark";
+        var next = _isDark ? "light" : "dark";
+        await JS.InvokeVoidAsync("setTheme", next);
+        _isDark = !_isDark;
     }
 }

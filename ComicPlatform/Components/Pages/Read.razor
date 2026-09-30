@@ -13,7 +13,7 @@
 
 <HeadContent>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,500&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 </HeadContent>
 
@@ -95,7 +95,7 @@ else
                             <div class="comment-meta">
                                 <span class="comment-author">@comment.User.DisplayName</span>
                                 <span class="comment-date">@comment.CreatedAt.ToString("MMM d, yyyy")</span>
-                                @if (_currentUserId is not null && (comment.UserId == _currentUserId || _chapter.Series.CreatorId == _currentUserId))
+                                @if (_currentUserId is not null && (comment.UserId == _currentUserId || _canModerate))
                                 {
                                     <button type="button" class="comment-delete" @onclick="() => DeleteComment(comment)">Delete</button>
                                 }
@@ -341,6 +341,7 @@ else
     private List<Comment> _comments = new();
     private readonly CommentFormModel _commentModel = new();
     private string? _currentUserId;
+    private bool _canModerate;
     private int _likeCount;
     private bool _hasLiked;
 
@@ -358,6 +359,11 @@ else
         {
             _chapter.ViewCount++;
             await Db.SaveChangesAsync();
+
+            _canModerate = _currentUserId is not null && (
+                authState.User.IsInRole("Admin") ||
+                _chapter.Series.CreatorId == _currentUserId ||
+                await Db.SeriesAuthors.AnyAsync(sa => sa.SeriesId == SeriesId && sa.UserId == _currentUserId));
 
             _previousChapterNumber = await Db.Chapters
                 .Where(c => c.SeriesId == SeriesId && c.Number < ChapterNumber && !c.IsDraft && c.PublishedAt <= DateTime.UtcNow)
@@ -452,7 +458,7 @@ else
             return;
         }
 
-        var canDelete = comment.UserId == _currentUserId || _chapter.Series.CreatorId == _currentUserId;
+        var canDelete = comment.UserId == _currentUserId || _canModerate;
 
         if (!canDelete)
         {

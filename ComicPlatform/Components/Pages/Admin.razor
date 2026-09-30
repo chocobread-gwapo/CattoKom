@@ -1,0 +1,243 @@
+@page "/admin"
+@attribute [Authorize(Roles = "Admin")]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.EntityFrameworkCore
+@using ComicPlatform.Data
+@using ComicPlatform.Models
+@inject ApplicationDbContext Db
+
+<PageTitle>Admin</PageTitle>
+
+<HeadContent>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,500&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+</HeadContent>
+
+<div class="admin">
+    <header class="admin-header">
+        <h1>Admin</h1>
+        <p class="tagline">All series, platform-wide.</p>
+    </header>
+
+    @if (_series is null)
+    {
+        <p class="loading">Loading...</p>
+    }
+    else if (_series.Count == 0)
+    {
+        <p class="loading">Nothing published yet.</p>
+    }
+    else
+    {
+        <div class="series-list">
+            @foreach (var series in _series)
+            {
+                <div class="series-row">
+                    <div class="series-row-main">
+                        <span class="series-title">@series.Title</span>
+                        <span class="status status-@series.Status.ToString().ToLower()">@series.Status</span>
+                    </div>
+                    <span class="creator-name">by @series.Creator.DisplayName</span>
+                    <div class="series-row-actions">
+                        <a href="@($"/series/{series.Id}")">View</a>
+                        @if (_confirmingDeleteId == series.Id)
+                        {
+                            <span class="confirm-delete">
+                                Delete permanently?
+                                <button type="button" class="confirm-yes" @onclick="() => DeleteSeries(series.Id)">Yes</button>
+                                <button type="button" class="confirm-no" @onclick="() => _confirmingDeleteId = null">Cancel</button>
+                            </span>
+                        }
+                        else
+                        {
+                            <button type="button" class="delete-series" @onclick="() => _confirmingDeleteId = series.Id">Delete</button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .admin {
+        font-family: 'Public Sans', sans-serif;
+        background: var(--paper);
+        color: var(--ink);
+        min-height: 100vh;
+        padding: 2.5rem 2rem 4rem;
+    }
+
+    .admin-header {
+        max-width: 1100px;
+        margin: 0 auto 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 3px solid var(--ink);
+    }
+
+    .admin-header h1 {
+        font-family: 'Fraunces', serif;
+        font-weight: 900;
+        font-size: clamp(1.75rem, 4vw, 2.5rem);
+        margin: 0;
+    }
+
+    .tagline {
+        font-family: 'Fraunces', serif;
+        font-style: italic;
+        font-weight: 500;
+        font-size: 1.1rem;
+        color: var(--accent);
+        margin: 0.25rem 0 0;
+    }
+
+    .series-list {
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+
+    .series-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        padding: 1.1rem 0.25rem;
+        border-bottom: 1.5px solid var(--ink);
+    }
+
+    .series-row:first-child {
+        border-top: 3px solid var(--ink);
+    }
+
+    .series-row-main {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .series-title {
+        font-family: 'Fraunces', serif;
+        font-weight: 600;
+        font-size: 1.15rem;
+    }
+
+    .creator-name {
+        color: var(--accent);
+        font-size: 0.9rem;
+    }
+
+    .series-row-actions {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+    }
+
+    .series-row-actions a {
+        color: var(--ink);
+        font-weight: 600;
+        text-decoration: underline;
+    }
+
+    .series-row-actions a:hover {
+        color: var(--accent);
+    }
+
+    .delete-series {
+        background: none;
+        border: 1.5px solid var(--danger);
+        color: var(--danger);
+        padding: 0.3rem 0.7rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .delete-series:hover {
+        background: var(--danger);
+        color: var(--paper);
+    }
+
+    .confirm-delete {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+        color: var(--danger);
+        font-weight: 600;
+    }
+
+    .confirm-yes, .confirm-no {
+        border: 1.5px solid var(--ink);
+        background: var(--panel-bg);
+        color: var(--ink);
+        padding: 0.2rem 0.55rem;
+        font-size: 0.8rem;
+        cursor: pointer;
+    }
+
+    .confirm-yes {
+        border-color: var(--danger);
+        color: var(--danger);
+    }
+
+    .status {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.15rem 0.55rem;
+        border: 1.5px solid var(--ink);
+    }
+
+    .status-ongoing {
+        background: var(--ink);
+        color: var(--paper);
+    }
+
+    .status-completed {
+        background: transparent;
+        color: var(--ink);
+    }
+
+    .status-hiatus {
+        background: transparent;
+        color: var(--ink);
+        opacity: 0.55;
+    }
+
+    .loading {
+        max-width: 1100px;
+        margin: 0 auto;
+        font-family: 'Fraunces', serif;
+        font-size: 1.1rem;
+    }
+</style>
+
+@code {
+    private List<Series>? _series;
+    private int? _confirmingDeleteId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _series = await Db.Series
+            .Include(s => s.Creator)
+            .OrderByDescending(s => s.CreatedAt)
+            .ToListAsync();
+    }
+
+    private async Task DeleteSeries(int seriesId)
+    {
+        var series = await Db.Series.FindAsync(seriesId);
+        if (series is not null)
+        {
+            Db.Series.Remove(series);
+            await Db.SaveChangesAsync();
+        }
+
+        _series?.RemoveAll(s => s.Id == seriesId);
+        _confirmingDeleteId = null;
+    }
+}

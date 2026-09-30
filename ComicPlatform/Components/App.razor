@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="@CurrentTheme">
 
 <head>
     <meta charset="utf-8" />
@@ -14,19 +14,10 @@
     <HeadOutlet @rendermode="PageRenderMode" />
 
     <script>
-            (function () {
-                const theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-                document.documentElement.setAttribute('data-theme', theme);
-            })();
-
-            window.setTheme = function (theme) {
-                document.documentElement.setAttribute('data-theme', theme);
-                localStorage.setItem('theme', theme);
-            };
-
-            window.getTheme = function () {
-                return document.documentElement.getAttribute('data-theme') || 'light';
-            };
+        window.setTheme = function (theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            document.cookie = 'theme=' + theme + ';path=/;max-age=31536000;samesite=lax';
+        };
     </script>
 
 </head>
@@ -46,4 +37,18 @@
 
     private IComponentRenderMode? PageRenderMode =>
         HttpContext.AcceptsInteractiveRouting() ? InteractiveServer : null;
+
+    private string CurrentTheme
+    {
+        get
+        {
+            if (HttpContext.Request.Cookies.TryGetValue("theme", out var theme) &&
+                (theme == "dark" || theme == "light"))
+            {
+                return theme;
+            }
+
+            return "light";
+        }
+    }
 }
