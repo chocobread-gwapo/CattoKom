@@ -3,12 +3,8 @@
 @inject IJSRuntime JS
 
 <div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
-
-    <main>
-        <div class="top-row px-4">
+    <header class="topbar">
+        <NavMenu>
             <button type="button" class="theme-switch @(_isDark ? "dark" : "")" @onclick="ToggleTheme" aria-label="@(_isDark ? "Switch to light mode" : "Switch to dark mode")">
                 <span class="theme-icon sun-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-sun-fill" viewBox="0 0 16 16">
@@ -23,12 +19,23 @@
                 </span>
                 <span class="theme-knob"></span>
             </button>
-        </div>
+        </NavMenu>
+    </header>
 
+    <main>
         <article class="content px-4">
             @Body
         </article>
     </main>
+
+    <footer class="site-footer">
+        <a class="brand" href="">CattoKom🐾</a>
+        <nav aria-label="Footer">
+            <a href="">Home</a>
+            <a href="creator/my-series">Creator dashboard</a>
+        </nav>
+        <small>© @DateTime.UtcNow.Year CattoKom</small>
+    </footer>
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
