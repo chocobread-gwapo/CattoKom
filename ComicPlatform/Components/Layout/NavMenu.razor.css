@@ -1,6 +1,6 @@
 .topnav { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 1.5rem; max-width: 960px; margin: 0 auto; padding: 0.6rem 1rem; }
 
-.brand { font-family: 'Fraunces', serif; font-weight: 900; font-size: 1.35rem; color: var(--ink); text-decoration: none; }
+.brand { display: inline-flex; align-items: center; gap: 0.5rem; font-family: 'Fraunces', serif; font-weight: 900; font-size: 1.35rem; color: var(--ink); text-decoration: none; }
 
 .links { display: flex; gap: 1.25rem; }
 .links ::deep .nav-link { color: var(--ink); text-decoration: none; font-weight: 600; font-size: 0.95rem;

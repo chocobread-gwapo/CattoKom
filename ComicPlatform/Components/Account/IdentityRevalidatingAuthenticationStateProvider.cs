@@ -33,16 +33,23 @@ namespace ComicPlatform.Components.Account
             {
                 return false;
             }
-            else if (!userManager.SupportsUserSecurityStamp)
+
+            // Added: the base scaffolding only ever checks the security stamp, which
+            // SetLockoutEndDateAsync never touches — so a banned user's open circuit
+            // would otherwise keep passing this check indefinitely.
+            if (await userManager.IsLockedOutAsync(user))
+            {
+                return false;
+            }
+
+            if (!userManager.SupportsUserSecurityStamp)
             {
                 return true;
             }
-            else
-            {
-                var principalStamp = principal.FindFirstValue(options.Value.ClaimsIdentity.SecurityStampClaimType);
-                var userStamp = await userManager.GetSecurityStampAsync(user);
-                return principalStamp == userStamp;
-            }
+
+            var principalStamp = principal.FindFirstValue(options.Value.ClaimsIdentity.SecurityStampClaimType);
+            var userStamp = await userManager.GetSecurityStampAsync(user);
+            return principalStamp == userStamp;
         }
     }
 }

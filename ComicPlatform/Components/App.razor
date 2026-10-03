@@ -23,7 +23,9 @@
 </head>
 
 <body>
-    <Routes @rendermode="PageRenderMode" />
+    <CascadingValue Value="CurrentTheme" Name="InitialTheme">
+        <Routes @rendermode="PageRenderMode" />
+    </CascadingValue>
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="@Assets["Components/Account/Shared/PasskeySubmit.razor.js"]" type="module"></script>

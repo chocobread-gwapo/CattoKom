@@ -6,7 +6,7 @@ main { flex: 1; }
 
 .site-footer { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; padding: 2rem 1rem;
     border-top: 2px solid var(--ink); background: var(--paper); color: var(--muted-text); font-size: 0.85rem; }
-.site-footer .brand { font-family: 'Fraunces', serif; font-weight: 900; font-size: 1.25rem; color: var(--ink); text-decoration: none; }
+.site-footer .brand { display: inline-flex; align-items: center; gap: 0.45rem; font-family: 'Fraunces', serif; font-weight: 900; font-size: 1.25rem; color: var(--ink); text-decoration: none; }
 .site-footer nav { display: flex; gap: 1.25rem; }
 .site-footer nav a { color: var(--ink); text-decoration: none; }
 .site-footer nav a:hover { text-decoration: underline; }

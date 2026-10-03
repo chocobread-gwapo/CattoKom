@@ -4,6 +4,7 @@
 @using Microsoft.EntityFrameworkCore
 @using ComicPlatform.Data
 @using ComicPlatform.Models
+@using ComicPlatform.Components.Shared
 @using System.ComponentModel.DataAnnotations
 @using System.Security.Claims
 @inject ApplicationDbContext Db
@@ -131,6 +132,10 @@ else
                                     @if (_currentUserId is not null && (comment.UserId == _currentUserId || _canModerate))
                                     {
                                         <button type="button" class="comment-delete" @onclick="() => DeleteComment(comment)">Delete</button>
+                                    }
+                                    @if (_currentUserId is not null && comment.UserId != _currentUserId)
+                                    {
+                                        <ReportButton TargetType="ReportTargetType.Comment" TargetId="comment.Id" />
                                     }
                                 </div>
                                 <p class="comment-content">@comment.Content</p>

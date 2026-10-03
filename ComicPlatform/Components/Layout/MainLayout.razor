@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@using ComicPlatform.Components.Shared
 
 @inject IJSRuntime JS
 
@@ -29,12 +30,12 @@
     </main>
 
     <footer class="site-footer">
-        <a class="brand" href="">CattoKom🐾</a>
+        <a class="brand" href=""><Logo /> Catkoom</a>
         <nav aria-label="Footer">
             <a href="">Home</a>
             <a href="creator/my-series">Creator dashboard</a>
         </nav>
-        <small>© @DateTime.UtcNow.Year CattoKom</small>
+        <small>© @DateTime.UtcNow.Year Catkoom</small>
     </footer>
 </div>
 
@@ -97,18 +98,14 @@
 </style>
 
 @code {
-    [CascadingParameter]
-    private HttpContext? HttpContext { get; set; }
+    [CascadingParameter(Name = "InitialTheme")]
+    private string? InitialTheme { get; set; }
 
     private bool _isDark;
 
     protected override void OnInitialized()
     {
-        if (HttpContext is not null &&
-            HttpContext.Request.Cookies.TryGetValue("theme", out var theme))
-        {
-            _isDark = theme == "dark";
-        }
+        _isDark = InitialTheme == "dark";
     }
 
     private async Task ToggleTheme()

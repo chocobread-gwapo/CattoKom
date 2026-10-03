@@ -60,26 +60,43 @@
 
             <div class="field">
                 <label>Chapter Title</label>
-                <InputText @bind-Value="_model.Title" />
+                <InputText @bind-Value="_model.Title" placeholder="e.g. The Long Way Home" />
             </div>
 
             <div class="field">
-                <label>Pages @(IsEditMode ? "" : "(30 MB max per image)")</label>
+                <label>
+                    Pages
+                    @if (_pages.Count > 0)
+                    {
+                        <span class="page-count">(@_pages.Count)</span>
+                    }
+                </label>
 
-                @foreach (var pg in _pages.OrderBy(p => p.PageNumber))
+                @if (_pages.Count > 0)
                 {
-                    <div class="page-row">
-                        <img src="@pg.ImageUrl" alt="Page @pg.PageNumber" class="page-thumb" />
-                        <span>Page @pg.PageNumber</span>
-                        <div class="page-actions">
-                            <button type="button" @onclick="() => MovePage(pg, -1)">&uarr;</button>
-                            <button type="button" @onclick="() => MovePage(pg, 1)">&darr;</button>
-                            <button type="button" class="delete-page" @onclick="() => DeletePage(pg)">Remove</button>
-                        </div>
+                    <div class="page-list">
+                        @{ var i = 1; }
+                        @foreach (var pg in _pages.OrderBy(p => p.PageNumber))
+                        {
+                            <div class="page-row">
+                                <span class="page-index">@i</span>
+                                <img src="@pg.ImageUrl" alt="Page @pg.PageNumber" class="page-thumb" />
+                                <div class="page-actions">
+                                    <button type="button" @onclick="() => MovePage(pg, -1)" aria-label="Move page up">&uarr;</button>
+                                    <button type="button" @onclick="() => MovePage(pg, 1)" aria-label="Move page down">&darr;</button>
+                                    <button type="button" class="delete-page" @onclick="() => DeletePage(pg)">Remove</button>
+                                </div>
+                            </div>
+                            i++;
+                        }
                     </div>
                 }
 
-                <InputFile OnChange="OnPageFilesSelected" multiple accept="image/*" />
+                <label class="drop-zone">
+                    <InputFile OnChange="OnPageFilesSelected" multiple accept="image/*" />
+                    <span class="drop-label">+ Add Pages</span>
+                    <span class="drop-hint">Drop images here or click to browse &middot; 30 MB max per image</span>
+                </label>
 
                 @if (_uploadErrors.Count > 0)
                 {
@@ -93,20 +110,20 @@
             </div>
 
             <div class="field">
-                <label>
-                    <InputCheckbox @bind-Value="_model.IsDraft" />
-                    Save as draft (not visible to readers)
-                </label>
-            </div>
-
-            @if (!_model.IsDraft)
-            {
-                <div class="field">
-                    <label>Publish At</label>
-                    <InputDate Type="InputDateType.DateTimeLocal" @bind-Value="_model.PublishAt" />
-                    <p class="field-hint">Leave this as the current time to publish immediately, or pick a future date/time to schedule the release.</p>
+                <label>Visibility</label>
+                <div class="publish-pills">
+                    <button type="button" class="pill @(_publishChoice == PublishChoice.Draft ? "on" : "")" @onclick="() => _publishChoice = PublishChoice.Draft">Draft</button>
+                    <button type="button" class="pill @(_publishChoice == PublishChoice.Now ? "on" : "")" @onclick="() => _publishChoice = PublishChoice.Now">Publish Now</button>
+                    <button type="button" class="pill @(_publishChoice == PublishChoice.Schedule ? "on" : "")" @onclick="() => _publishChoice = PublishChoice.Schedule">Schedule</button>
                 </div>
-            }
+                <p class="field-hint">@PublishHint()</p>
+
+                @if (_publishChoice == PublishChoice.Schedule)
+                {
+                    <InputDate Type="InputDateType.DateTimeLocal" @bind-Value="_model.PublishAt" />
+                    <p class="field-hint">Uses the server's clock (UTC) — not automatically adjusted to your local time zone.</p>
+                }
+            </div>
 
             <button type="submit" disabled="@(_pages.Count == 0)">@(IsEditMode ? "Save Chapter Details" : "Save Chapter")</button>
         </EditForm>
@@ -150,13 +167,19 @@
     }
 
     .field {
-        margin-bottom: 1.25rem;
+        margin-bottom: 1.5rem;
     }
 
-    .field label {
+    .field > label {
         display: block;
         margin-bottom: 0.35rem;
         font-weight: 600;
+    }
+
+    .page-count {
+        font-weight: normal;
+        color: var(--muted-text);
+        font-size: 0.9rem;
     }
 
     .field input[type="text"], .field input[type="number"], .field input[type="datetime-local"] {
@@ -179,8 +202,21 @@
     .field-hint {
         margin: 0.4rem 0 0;
         font-size: 0.85rem;
-        opacity: 0.7;
+        color: var(--muted-text);
         font-weight: normal;
+    }
+
+    .validation-errors {
+        list-style: none;
+        padding: 0;
+        margin: 0 auto 1.25rem;
+        max-width: 600px;
+    }
+
+    .validation-message {
+        color: var(--danger);
+        font-size: 0.85rem;
+        font-weight: 600;
     }
 
     button[type="submit"] {
@@ -202,17 +238,30 @@
         cursor: not-allowed;
     }
 
+    .page-list {
+        margin-top: 0.75rem;
+    }
+
     .page-row {
         display: flex;
         align-items: center;
-        gap: 1rem;
-        padding: 0.6rem 0;
+        gap: 0.85rem;
+        padding: 0.5rem 0;
         border-bottom: 1.5px solid var(--border-soft);
     }
 
+    .page-index {
+        width: 1.5rem;
+        flex-shrink: 0;
+        font-family: 'Fraunces', serif;
+        font-weight: 700;
+        color: var(--muted-text);
+        text-align: right;
+    }
+
     .page-thumb {
-        width: 50px;
-        height: 65px;
+        width: 56px;
+        height: 74px;
         object-fit: cover;
         border: 1.5px solid var(--ink);
         flex-shrink: 0;
@@ -220,13 +269,13 @@
 
     .page-actions {
         display: flex;
-        gap: 0.5rem;
+        gap: 0.4rem;
         margin-left: auto;
     }
 
     .page-actions button {
         border: 1.5px solid var(--ink);
-        background: var(--panel-bg);
+        background: transparent;
         color: var(--ink);
         padding: 0.3rem 0.6rem;
         cursor: pointer;
@@ -234,7 +283,7 @@
     }
 
     .page-actions button:hover {
-        background: var(--paper);
+        background: var(--panel-bg);
     }
 
     .page-actions .delete-page {
@@ -242,14 +291,90 @@
         border-color: var(--danger);
     }
 
+    .page-actions .delete-page:hover {
+        background: var(--danger);
+        color: var(--paper);
+    }
+
+    .drop-zone {
+        position: relative;
+        display: block;
+        margin-top: 0.75rem;
+        padding: 1.5rem 1rem;
+        border: 2px dashed var(--ink);
+        text-align: center;
+        cursor: pointer;
+        background: var(--panel-bg);
+    }
+
+    .drop-zone:hover {
+        background: var(--paper);
+    }
+
+    .drop-zone input[type="file"] {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+        width: 100%;
+        height: 100%;
+    }
+
+    .drop-label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .drop-hint {
+        display: block;
+        font-size: 0.8rem;
+        color: var(--muted-text);
+    }
+
     .upload-errors {
         color: var(--danger);
-        font-size: 0.9rem;
+        font-size: 0.85rem;
+        margin-top: 0.6rem;
+    }
+
+    .publish-pills {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 0.3rem;
+    }
+
+    .publish-pills .pill {
+        font: inherit;
+        font-size: 0.85rem;
+        font-weight: 600;
+        padding: 0.4rem 0.9rem;
+        cursor: pointer;
+        background: transparent;
+        color: var(--ink);
+        border: 1.5px solid var(--ink);
+    }
+
+    .publish-pills .pill:hover {
+        background: var(--panel-bg);
+    }
+
+    .publish-pills .pill.on {
+        background: var(--ink);
+        color: var(--paper);
+    }
+
+    .publish-pills .pill:focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 2px;
     }
 </style>
 
 @code {
     private const long MaxFileSizeBytes = 30 * 1024 * 1024;
+
+    private enum PublishChoice { Draft, Now, Schedule }
 
     [Parameter] public int? SeriesId { get; set; }
     [Parameter] public int? ChapterId { get; set; }
@@ -264,6 +389,15 @@
     private readonly ChapterFormModel _model = new();
     private readonly List<Page> _pages = new();
     private readonly List<string> _uploadErrors = new();
+    private PublishChoice _publishChoice = PublishChoice.Now;
+
+    private string PublishHint() => _publishChoice switch
+    {
+        PublishChoice.Draft => "Only you and any co-authors can see this until you publish it.",
+        PublishChoice.Now => "Visible to readers as soon as you save.",
+        PublishChoice.Schedule => "Stays hidden from readers until the date/time below.",
+        _ => ""
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -283,8 +417,8 @@
                 _seriesTitle = chapter.Series.Title;
                 _model.Number = chapter.Number;
                 _model.Title = chapter.Title;
-                _model.IsDraft = chapter.IsDraft;
                 _model.PublishAt = chapter.PublishedAt ?? DateTime.UtcNow;
+                _publishChoice = chapter.IsDraft ? PublishChoice.Draft : PublishChoice.Schedule;
                 _pages.AddRange(chapter.Pages);
                 _authorized = true;
             }
@@ -391,7 +525,15 @@
 
     private async Task HandleSubmit()
     {
-        var publishedAt = _model.IsDraft ? (DateTime?)null : DateTime.SpecifyKind(_model.PublishAt, DateTimeKind.Utc);
+        var isDraft = _publishChoice == PublishChoice.Draft;
+
+        DateTime? publishedAt = _publishChoice switch
+        {
+            PublishChoice.Draft => null,
+            PublishChoice.Now => DateTime.UtcNow,
+            PublishChoice.Schedule => DateTime.SpecifyKind(_model.PublishAt, DateTimeKind.Utc),
+            _ => null
+        };
 
         if (IsEditMode)
         {
@@ -402,7 +544,7 @@
 
             _chapter.Number = _model.Number;
             _chapter.Title = _model.Title;
-            _chapter.IsDraft = _model.IsDraft;
+            _chapter.IsDraft = isDraft;
             _chapter.PublishedAt = publishedAt;
 
             await Db.SaveChangesAsync();
@@ -421,7 +563,7 @@
                 SeriesId = SeriesId.Value,
                 Number = _model.Number,
                 Title = _model.Title,
-                IsDraft = _model.IsDraft,
+                IsDraft = isDraft,
                 PublishedAt = publishedAt,
                 Pages = _pages
             };
@@ -440,8 +582,6 @@
 
         [Required, MaxLength(200)]
         public string Title { get; set; } = string.Empty;
-
-        public bool IsDraft { get; set; } = false;
 
         public DateTime PublishAt { get; set; } = DateTime.UtcNow;
     }

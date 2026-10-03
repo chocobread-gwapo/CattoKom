@@ -4,6 +4,7 @@
 @using Microsoft.EntityFrameworkCore
 @using ComicPlatform.Data
 @using ComicPlatform.Models
+@using ComicPlatform.Components.Shared
 @using System.Security.Claims
 @inject ApplicationDbContext Db
 @inject AuthenticationStateProvider AuthProvider
@@ -74,6 +75,13 @@
                         <a class="follow-login-prompt" href="/Account/Login">Log in to follow</a>
                     }
                 </div>
+
+                @if (_currentUserId is not null)
+                {
+                    <div class="report-row">
+                        <ReportButton TargetType="ReportTargetType.Series" TargetId="SeriesId" />
+                    </div>
+                }
             </div>
         </div>
 
@@ -148,6 +156,7 @@
     .stats dd { margin: 0; font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.25rem; }
 
     .action-row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: auto; }
+    .report-row { margin-top: 0.6rem; }
     .start-reading { display: inline-block; background: var(--ink); color: var(--paper); text-decoration: none; font-weight: 600; padding: 0.7rem 1.5rem; border: 3px solid var(--ink); }
     .start-reading:hover { background: var(--accent); border-color: var(--accent); }
     .follow-button { background: transparent; color: var(--ink); border: 3px solid var(--ink); padding: 0.7rem 1.5rem; font: inherit; font-weight: 600; cursor: pointer; }

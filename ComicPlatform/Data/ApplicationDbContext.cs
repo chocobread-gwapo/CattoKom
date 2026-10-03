@@ -19,6 +19,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Follow> Follows { get; set; }
     public DbSet<Like> Likes { get; set; }
     public DbSet<SeriesAuthor> SeriesAuthors { get; set; }
+    public DbSet<Report> Reports { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -44,5 +45,22 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         builder.Entity<SeriesAuthor>()
             .HasKey(sa => new { sa.SeriesId, sa.UserId });
+
+        builder.Entity<Report>()
+            .HasOne(r => r.Series)
+            .WithMany()
+            .HasForeignKey(r => r.SeriesId)
+            .OnDelete(DeleteBehavior.Restrict);   // was SetNull
+
+        builder.Entity<Report>()
+            .HasOne(r => r.Comment)
+            .WithMany()
+            .HasForeignKey(r => r.CommentId)
+            .OnDelete(DeleteBehavior.SetNull);
+        
+        builder.Entity<Report>()
+            .HasOne(r => r.Reporter)
+            .WithMany()
+            .HasForeignKey(r => r.ReporterId).OnDelete(DeleteBehavior.Restrict);
     }
 }

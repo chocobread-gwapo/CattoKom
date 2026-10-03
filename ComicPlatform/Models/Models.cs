@@ -160,3 +160,22 @@ public class SeriesAuthor
 
     public DateTime AddedAt { get; set; } = DateTime.UtcNow;
 }
+
+public enum ReportReason { Spam, HarassmentOrHate, Spoilers, Copyright, Inappropriate, Other }
+public enum ReportStatus { Pending, Resolved, Dismissed }
+public enum ReportTargetType { Comment, Series }
+
+public class Report
+{
+    public int Id { get; set; }
+    public ReportTargetType TargetType { get; set; }
+    public int? CommentId { get; set; }
+    public Comment? Comment { get; set; }
+    public int? SeriesId { get; set; }
+    public Series? Series { get; set; }
+    public string ReporterId { get; set; } = string.Empty;
+    public ApplicationUser Reporter { get; set; } = null!;
+    public ReportReason Reason { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public ReportStatus Status { get; set; } = ReportStatus.Pending;
+}

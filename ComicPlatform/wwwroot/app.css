@@ -68,6 +68,8 @@ h1:focus {
     --hatch: #E2DDCF;
     --danger: #A83A2A;
     --muted-text: #8A8478;
+    --logo-a: rgb(99, 28, 37);
+    --logo-b: rgb(255, 216, 168);
 }
 
 [data-theme="dark"] {
@@ -79,6 +81,8 @@ h1:focus {
     --hatch: #2E2A1F;
     --danger: #E0685A;
     --muted-text: #948C78;
+    --logo-a: rgb(99, 28, 37);
+    --logo-b: rgb(255, 216, 168);
 }
 
 body {
