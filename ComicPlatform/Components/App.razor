@@ -18,6 +18,19 @@
             document.documentElement.setAttribute('data-theme', theme);
             document.cookie = 'theme=' + theme + ';path=/;max-age=31536000;samesite=lax';
         };
+
+        @* Plain-JS so the toggle button works even on pages with no interactive
+         circuit (Identity's Account/Manage pages render static-only, since they
+         need real cookie-writing POSTs — @onclick never fires there). *@
+        window.toggleTheme = function (btn) {
+            var current = document.documentElement.getAttribute('data-theme') || 'light';
+            var next = current === 'dark' ? 'light' : 'dark';
+            window.setTheme(next);
+            if (btn) {
+                btn.classList.toggle('dark', next === 'dark');
+                btn.setAttribute('aria-label', next === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+            }
+        };
     </script>
 
 </head>

@@ -110,3 +110,27 @@ body {
     .top-row .nav-link {
         color: var(--ink) !important;
     }
+
+body {
+    background: var(--paper);
+    color: var(--ink);
+}
+
+.form-control, .form-select {
+    background-color: var(--panel-bg);
+    color: var(--ink);
+    border-color: var(--ink);
+}
+
+    .form-control:focus, .form-select:focus {
+        background-color: var(--panel-bg);
+        color: var(--ink);
+    }
+
+label, .form-label {
+    color: var(--ink);
+}
+
+a {
+    color: var(--accent);
+}
